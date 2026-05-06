@@ -5,10 +5,27 @@ from feedgen.feed import FeedGenerator
 import sqlite3
 from datetime import datetime
 import asyncio
+import os
 
 app = FastAPI()
 api = API()
 
+X_EMAIL = os.getenv("X_EMAIL")
+X_USERNAME = os.getenv("X_USERNAME")
+X_PASSWORD = os.getenv("X_PASSWORD")
+
+if not all([X_EMAIL, X_USERNAME, X_PASSWORD]):
+    raise RuntimeError("Missing X login environment variables")
+
+asyncio.run(
+    api.pool.add_account(
+        X_EMAIL,
+        X_USERNAME,
+        X_PASSWORD
+    )
+)
+
+asyncio.run(api.pool.login_all())
 conn = sqlite3.connect("rss.db", check_same_thread=False)
 
 conn.execute("""
