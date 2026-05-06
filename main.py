@@ -20,9 +20,9 @@ if not all([X_EMAIL, X_USERNAME, X_PASSWORD]):
 @app.on_event("startup")
 async def startup():
     await api.pool.add_account(
-        X_EMAIL,
         X_USERNAME,
-        X_PASSWORD
+        X_PASSWORD,
+        X_EMAIL
     )
     await api.pool.login_all()
 conn = sqlite3.connect("rss.db", check_same_thread=False)
