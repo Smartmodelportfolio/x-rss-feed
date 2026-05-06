@@ -17,15 +17,14 @@ X_PASSWORD = os.getenv("X_PASSWORD")
 if not all([X_EMAIL, X_USERNAME, X_PASSWORD]):
     raise RuntimeError("Missing X login environment variables")
 
-asyncio.run(
-    api.pool.add_account(
+@app.on_event("startup")
+async def startup():
+    await api.pool.add_account(
         X_EMAIL,
         X_USERNAME,
         X_PASSWORD
     )
-)
-
-asyncio.run(api.pool.login_all())
+    await api.pool.login_all()
 conn = sqlite3.connect("rss.db", check_same_thread=False)
 
 conn.execute("""
