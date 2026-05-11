@@ -4,7 +4,6 @@ from twscrape import API
 from feedgen.feed import FeedGenerator
 import sqlite3
 from datetime import datetime
-import asyncio
 import os
 
 app = FastAPI()
@@ -13,18 +12,24 @@ api = API()
 X_EMAIL = os.getenv("X_EMAIL")
 X_USERNAME = os.getenv("X_USERNAME")
 X_PASSWORD = os.getenv("X_PASSWORD")
+X_EMAIL_PASSWORD = os.getenv("X_EMAIL_PASSWORD")
 
-if not all([X_EMAIL, X_USERNAME, X_PASSWORD]):
+if not all([X_EMAIL, X_USERNAME, X_PASSWORD, X_EMAIL_PASSWORD]):
     raise RuntimeError("Missing X login environment variables")
+
 
 @app.on_event("startup")
 async def startup():
     await api.pool.add_account(
         X_USERNAME,
         X_PASSWORD,
-        X_EMAIL
+        X_EMAIL,
+        X_EMAIL_PASSWORD
     )
+
     await api.pool.login_all()
+
+
 conn = sqlite3.connect("rss.db", check_same_thread=False)
 
 conn.execute("""
@@ -38,7 +43,6 @@ conn.commit()
 
 @app.get("/rss")
 async def rss(query: str):
-
     row = conn.execute(
         "SELECT last_id FROM seen WHERE query=?",
         (query,)
@@ -49,21 +53,18 @@ async def rss(query: str):
     tweets = []
 
     async for tweet in api.search(query, limit=20):
-
         if tweet.id <= since_id:
             continue
 
         tweets.append(tweet)
 
     if tweets:
-
         max_id = max(t.id for t in tweets)
 
         conn.execute(
             "INSERT OR REPLACE INTO seen(query,last_id) VALUES(?,?)",
             (query, max_id)
         )
-
         conn.commit()
 
     fg = FeedGenerator()
@@ -73,7 +74,6 @@ async def rss(query: str):
     fg.description("Generated RSS feed")
 
     for tweet in reversed(tweets):
-
         fe = fg.add_entry()
 
         fe.id(str(tweet.id))
